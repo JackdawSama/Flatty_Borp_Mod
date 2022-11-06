@@ -8,27 +8,27 @@ tubes={}
 
 --ground vars
 ground={}
-ground_num=4
-ground_v=1.5
+ground_num=4				--number of ground sprites
+ground_v=1.5				--velocity of ground sprites
 
 --cloud vars
 clouds={}
-cloud_num=3
-cloud_v=0.5
+cloud_num=3					--number of cloud sprites
+cloud_v=0.5					--velocity of ground sprites
 
 --hill vars
 hills={}
-hill_num=3
-hill_v=0.7
+hill_num=3					--number of hill sprites
+hill_v=0.7					--velocity of hill sprites
 
 --bird vars
-bird_x=10
-bird_y=10
-bird_v=0
+bird_x=10					--xPos of bird
+bird_y=10					--yPos of bird
+bird_v=0					--velocity of bird
 bird_spr=12
-gravity=0.1
-jump_force=2
-pressed=false
+gravity=0.1					--velocity on bird
+jump_force=2				--force added to move the bird up
+pressed=false				--key press bool
 
 --bullet vars
 bullets={}
@@ -44,6 +44,7 @@ end_time=0
 end_y=-12
 end_tar=22
 
+--score variables
 score=0
 best=0
 
