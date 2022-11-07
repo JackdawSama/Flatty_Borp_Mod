@@ -5,6 +5,10 @@ __lua__
 
 --tube vars
 tubes={}
+tube_num=1
+tube_count=0
+
+tube_pos = {}
 
 --ground vars
 ground={}
@@ -53,7 +57,9 @@ state="menu"
 --run once at start
 function _init()
 	--make all "objects"
-	add_tube()
+	for i = 0,tube_num do
+		add_tube()
+	end
 	for i=0,ground_num do
 		add_ground(i*32)
 	end
@@ -167,6 +173,7 @@ function b_overlap(_b,_t)
 				_b.x<=_t.x+_t.hit_w and
 				_b.y>=_t.y and
 				_b.y<=_t.y+_t.hit_h)then
+					score = score + 1
 		return true
 	end
 end
@@ -179,13 +186,12 @@ end
 --game state
 
 function game_update()
-	
 	for t in all(tubes) do
 		if(t.alive)then
 			t.x-=t.x_v
 			t.y+=t.y_v
 			
-			if(t.y>=95 or t.y <= 0)then
+			if(t.y>=95 or t.y <= 5)then
 				t.y_v=-t.y_v
 			end
 			if(t.x>=100 or t.x <= 10)then
@@ -197,7 +203,6 @@ function game_update()
 				state="end"		
 			end
 		end
-	
 	end
 	
 	for g in all(ground) do
@@ -236,11 +241,29 @@ function game_update()
 	
 	end
 
+	for t in all(tubes) do
+		if(not t.alive)then
+			tube_count = tube_count + 1
+			del(tubes,t)
+		end
+	end
+
+	if(tube_count == 2)then
+		for i = 0,tube_num do
+			add_tube()
+		end
+		tube_count = 0
+	end
+
 	bird_move()		
 	
-	if(bird_y > 125)then
+	if(bird_y > 117)then
 		sfx(1)
 		state="end"		
+	end
+	if(bird_y < -8)then
+		sfx(1)
+		state="end"
 	end
 	
 	if(btnp(2,0))then
@@ -254,8 +277,7 @@ function game_update()
 				t.alive=false
 			end
 		end
-	end
-	
+	end	
 end
 
 function game_draw()
@@ -461,6 +483,7 @@ function end_sfx()
 	if(end_time==65) sfx(2)
 
 end
+
 __gfx__
 111111111111111111100000000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111100000011111100000000001111110000
 111111111111111111100000000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111100000011111100000000001111110000
