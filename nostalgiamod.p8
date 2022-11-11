@@ -1,12 +1,12 @@
 pico-8 cartridge // http://www.pico-8.com
-version 36
+version 38
 __lua__
 --main
 
 --tube vars
 tubes={}
-tube_num=1
 tube_count=0
+tube_diff=0.01
 
 tube_pos = {}
 
@@ -24,18 +24,6 @@ cloud_v=0.5					--velocity of ground sprites
 hills={}
 hill_num=3					--number of hill sprites
 hill_v=0.7					--velocity of hill sprites
-
---bird vars
-bird_x=10					--xPos of bird
-bird_y=10					--yPos of bird
-bird_v=0					--velocity of bird
-bird_spr=12
-gravity=0.1					--velocity on bird
-jump_force=2				--force added to move the bird up
-pressed=false				--key press bool
-
---bullet vars
-bullets={}
 
 --main menu title vars
 title_y=27
@@ -57,9 +45,9 @@ state="menu"
 --run once at start
 function _init()
 	--make all "objects"
-	for i = 0,tube_num do
-		add_tube()
-	end
+
+	add_tube()
+
 	for i=0,ground_num do
 		add_ground(i*32)
 	end
@@ -95,9 +83,6 @@ end
 
 --resets all gameplay vars
 function reset_game()
-	gravity=0.1
-	
-	pressed=false
 
 	title_y=27
 	title_tar=30
@@ -106,16 +91,8 @@ function reset_game()
 
 	score=0
 	
-	bird_x=10
-	bird_y=10
-	bird_v=0
-	bird_spr=12
-	
-	end_time=0
-	end_y=-12
-	end_tar=22	
-	t_count=0
-	
+	add_tube()
+
 	state="game"
 	
 end
@@ -157,27 +134,6 @@ function add_tube()
 	})
 end
 
---check col b/t bird and tube
-function overlap(_t)
-	if(bird_x+8>=_t.x and
-		bird_x<=_t.x+_t.hit_w and
-		bird_y+8>=_t.y and
-		bird_y<=_t.y+_t.hit_h)then
-		return true
-	end
-end
-
---check overlap b/t bullet and tube
-function b_overlap(_b,_t)
-	if(_b.x>=_t.x and
-				_b.x<=_t.x+_t.hit_w and
-				_b.y>=_t.y and
-				_b.y<=_t.y+_t.hit_h)then
-					score = score + 1
-		return true
-	end
-end
-
 --gen lerp func for juice
 function lerp(pos,tar,p)
 	return(1-p)*tar+p*pos
@@ -187,21 +143,28 @@ end
 
 function game_update()
 	for t in all(tubes) do
-		if(t.alive)then
-			t.x-=t.x_v
-			t.y+=t.y_v
-			
-			if(t.y>=95 or t.y <= 5)then
-				t.y_v=-t.y_v
+		t.x-=t.x_v
+		t.y+=t.y_v
+
+		if(t.y>=95 or t.y <= 5)then
+			t.y_v = -t.y_v
+			tube_diff = -tube_diff
+			if(t.y_v > 0.7)then
+				t.y_v = 0.5
 			end
-			if(t.x>=100 or t.x <= 10)then
-				t.x_v=-t.x_v
+			t.y_v += tube_diff 
+			score = score + 1
+			sfx(1)
+		end
+		if(t.x>=100 or t.x <= 5)then
+			t.x_v = -t.x_v
+			tube_diff = -tube_diff
+			if(t.x_v > 0.7)then
+				t.x_v = 0.5
 			end
-			
-			if(overlap(t))then
-				sfx(1)
-				state="end"		
-			end
+			t.x_v += tube_diff
+			score = score + 1
+			sfx(1)
 		end
 	end
 	
@@ -240,44 +203,13 @@ function game_update()
 		end
 	
 	end
-
-	for t in all(tubes) do
-		if(not t.alive)then
-			tube_count = tube_count + 1
-			del(tubes,t)
-		end
-	end
-
-	if(tube_count == 2)then
-		for i = 0,tube_num do
-			add_tube()
-		end
-		tube_count = 0
-	end
-
-	bird_move()		
-	
-	if(bird_y > 117)then
-		sfx(1)
-		state="end"		
-	end
-	if(bird_y < -8)then
-		sfx(1)
-		state="end"
-	end
 	
 	if(btnp(2,0))then
-		add_bullet(bird_x+8,bird_y+4)
-	end
-	
-	for b in all(bullets)do
-		b.x+=b.v
-		for t in all(tubes)do
-			if(b_overlap(b,t))do
-				t.alive=false
-			end
+		for t in all(tubes) do
+			del(tubes,t)
 		end
-	end	
+		state="end"
+	end
 end
 
 function game_draw()
@@ -294,7 +226,7 @@ function game_draw()
 		
 	for t in all(tubes) do
 		if(t.alive)then
-			spr(0,t.x,t.y,3,3)
+			spr(0,t.x,t.y,3,2)
 		end
 	end
 		
@@ -305,39 +237,12 @@ function game_draw()
 	for b in all(bullets) do
 		circfill(b.x,b.y,1,8)
 	end
-		
-	spr(bird_spr,bird_x,bird_y,2,2)
+
 	rectfill(64,10,66,14,7)
 	print(score,64,10,0)
 
 end
 
-function bird_move()
-	
-	bird_v+=gravity
-	bird_y+=bird_v
-	
-	if(btn(4,0) and not pressed)do
-		sfx(0)
-		bird_v-=jump_force
-		bird_spr=14
-		pressed=true
-	end
-	
-	if(not btn(4,0))then
-		bird_spr=12
-		pressed=false
-	end
-
-end
-
-function add_bullet(_x,_y)
-	add(bullets,{
-		x=_x,
-		y=_y,
-		v=2
-	})
-end
 -->8
 --menu
 
@@ -405,7 +310,7 @@ function menu_draw()
 	spr(192,28,title_y,9,2)
 	
 	print("press x to start",32,50,7)
-	print("z to flap",47,60,0)
+	print("press UP to restart",32,60,0)
 
 end
 
@@ -426,8 +331,6 @@ end
 --end
 
 function end_update()
-	
-	bounce_back()
 	
 	end_time+=1
 	
@@ -461,17 +364,6 @@ function end_draw()
 
 end
 
-function bounce_back()
-	
-	if(bird_y<128)then
-		gravity=1.5
-		bird_v+=gravity
-		bird_x-=2+rnd(4)
-		bird_y+=bird_v
-	end
-
-end
-
 function end_sfx()
 	
 	if(end_time==5) sfx(4)
@@ -485,29 +377,29 @@ function end_sfx()
 end
 
 __gfx__
-111111111111111111100000000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111100000011111100000000001111110000
-111111111111111111100000000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111100000011111100000000001111110000
-11bbb7bbbbbbbbbb31100000000000000011bbbbb77b7bbbbbbbbb3b333311007777777777777777777777777777777700001144888811000000114488881100
-11bbb8bbbbbb8bbb31100000000000000011bbbbb77b7bbbbbbbbb3b33331100bbbbbbb33333333bbbbbbbb33333333b00001144888811000000114488881100
-11bbb78bbbb8bbbb31100000000000000011bbbbb77b7bbbbbbbbb3b33331100bbbbbb33333333bbbbbbbb33333333bb00114488888877770011448888887777
-11bbb7b8bb8bbbbb31100000000000000011bbbbb77b7bbbbbbbbb3b33331100bbbbb33333333bbbbbbbb33333333bbb00114488888877770011448888887777
-11bbb788bb88bbbb31100000000000000011bbbbb77b7bbbbbbbbb3b33331100bbbb33333333bbbbbbbb33333333bbbb00118888888877111111888888887711
-11bbb788bb88bbbb31100000000000000011bbbbb77b7bbbbbbbbb3b33331100bbb33333333bbbbbbbb33333333bbbbb00118888888877111111888888887711
-111111881188111111100000000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111111111188888811114411118888881111
-111111881188111111100000000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111111111188888811114411118888881111
-0011bb88bb88bb3110000000000000000011bbbbb77b7bbbbbbbbb3b333311004444444444444444444444444444444444881188881199998888118888119999
-0011bbbbbbbbbb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff44881188881199998888118888119999
-0011bbbbbbbbbb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff11118888888811110011888888881111
-0011bbbbbbbbbb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff11118888888811110011888888881111
-0011bbbb11bbbb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00001111111100000000111111110000
-0011bbb1bb1bbb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00001111111100000000111111110000
-0011bb17bb71bb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
-0011bbb7bb7bbb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
-0011bbbbbbbbbb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
-0011bbbbbbbbbb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
-0011bbbbbbbbbb3110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
-001111111111111110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
-001111111111111110000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+eeeeeee1ee1111ee1eeeeeee000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111100000011111100000000001111110000
+eeeeeee11ee11ee11eeeeeee000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111100000011111100000000001111110000
+e11eeee11ee11ee11e11eeee000000000011bbbbb77b7bbbbbbbbb3b333311007777777777777777777777777777777700001144888811000000114488881100
+e111eee11ee11ee11e111eee000000000011bbbbb77b7bbbbbbbbb3b33331100bbbbbbb33333333bbbbbbbb33333333b00001144888811000000114488881100
+e111eee11ee11ee11e111eee000000000011bbbbb77b7bbbbbbbbb3b33331100bbbbbb33333333bbbbbbbb33333333bb00114488888877770011448888887777
+e111eee11ee11ee11e111eee000000000011bbbbb77b7bbbbbbbbb3b33331100bbbbb33333333bbbbbbbb33333333bbb00114488888877770011448888887777
+e111eee11ee11ee11e111eee000000000011bbbbb77b7bbbbbbbbb3b33331100bbbb33333333bbbbbbbb33333333bbbb00118888888877111111888888887711
+e111eee11ee11ee11e111eee000000000011bbbbb77b7bbbbbbbbb3b33331100bbb33333333bbbbbbbb33333333bbbbb00118888888877111111888888887711
+e111eee11ee11ee11e111eee000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111111111188888811114411118888881111
+e11eeee111e11e111e11eeee000000000011bbbbb77b7bbbbbbbbb3b333311001111111111111111111111111111111111111188888811114411118888881111
+eeeeeee111eeee111eeeeeee000000000011bbbbb77b7bbbbbbbbb3b333311004444444444444444444444444444444444881188881199998888118888119999
+eeeeeee1111ee1111eeeeeee000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff44881188881199998888118888119999
+111111111111111111111111000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff11118888888811110011888888881111
+eeeeeeeeeeeeeeeeeeeeeeee000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff11118888888811110011888888881111
+11eeeeeeeeeeeeeeeeeeee11000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00001111111100000000111111110000
+111eeeeeeeeeeeeeeeeee111000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00001111111100000000111111110000
+000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
 000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
 000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
 000000000000000000000000000000000011bbbbb77b7bbbbbbbbb3b33331100ffffffffffffffffffffffffffffffff00000000000000000000000000000000
